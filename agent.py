@@ -32,7 +32,10 @@ from sqlalchemy import create_engine, text
 
 from langchain_core.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
+from fastapi.middleware.cors import CORSMiddleware
+
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -54,7 +57,14 @@ engine = create_engine(
     connect_args={"connect_timeout": 10},
 )
 
-llm = ChatGoogleGenerativeAI(model="gemini-3.6-flash", temperature=0)
+#llm = ChatGoogleGenerativeAI(model="gemini-3.6-flash", temperature=0)
+llm = ChatOllama(
+    model="qwen3:8b",
+    temperature=0,
+    reasoning=False,
+    num_predict=1024,        # tokens 1024කින් නවත්තනවා
+    num_ctx=8192,            # 32k ඕනේ නැහැ, RAM බේරෙනවා
+)
 
 
 def _rows(sql: str, params: dict | None = None) -> list[dict]:
@@ -285,7 +295,12 @@ class AskResponse(BaseModel):
 
 
 app = FastAPI(title="LakVeggie Agent", version="0.1.0")
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # local dev only
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():
@@ -326,3 +341,5 @@ def ask(req: AskRequest):
         trace=calls,
         warning=warning.strip() if warning else None,
     )
+
+

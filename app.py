@@ -21,8 +21,10 @@ from sqlalchemy import create_engine
 
 from langchain_community.utilities import SQLDatabase
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langgraph.prebuilt import create_react_agent
 
 load_dotenv()
 
@@ -56,7 +58,14 @@ db = SQLDatabase(
 )
 
 # llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-llm = ChatGoogleGenerativeAI(model="gemini-3.6-flash", temperature=0)
+#llm = ChatGoogleGenerativeAI(model="gemini-3.6-flash", temperature=0)
+llm = ChatOllama(
+    model="qwen3:8b",
+    temperature=0,
+    reasoning=False,
+    num_predict=1024,        # tokens 1024කින් නවත්තනවා
+    num_ctx=8192,            # 32k ඕනේ නැහැ, RAM බේරෙනවා
+)
 
 # ----------------------------------------------------------------- SQL guard
 
@@ -167,7 +176,12 @@ class AskResponse(BaseModel):
 
 
 app = FastAPI(title="LakVeggie AI", version="1.0.0")
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # local dev only
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():
